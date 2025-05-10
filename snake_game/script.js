@@ -1,79 +1,95 @@
 
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-let snake = [{x: 10, y: 10}];
-let food = {x: Math.floor(Math.random() * 15), y: Math.floor(Math.random() * 15)};
-let direction = 'right';
-let score = 0;
 
-document.addEventListener('keydown', function(event) {
-    switch (event.key) {
-        case 'ArrowUp':
-            direction = 'up';
-            break;
-        case 'ArrowDown':
-            direction = 'down';
-            break;
-        case 'ArrowLeft':
-            direction = 'left';
-            break;
-        case 'ArrowRight':
-            direction = 'right';
-            break;
+// Параметры игры
+let snake = [{ x: 10, y: 10 }];
+let dx = 1, dy = 0;
+let speed = 100;
+let gameInterval;
+
+// Джойстик
+const joystickContainer = document.getElementById('joystick-container');
+const joystickKnob = document.getElementById('joystick-knob');
+let isDraggingJoystick = false;
+let initialX, initialY;
+
+// Управление направлением
+function changeDirection(dxValue, dyValue) {
+    dx = dxValue;
+    dy = dyValue;
+}
+
+// Определение направления по движению джойстика
+function handleJoystickMove(event) {
+    const rect = joystickContainer.getBoundingClientRect();
+    const knobPositionX = event.clientX - rect.left;
+    const knobPositionY = event.clientY - rect.top;
+
+    if (knobPositionX < rect.width / 2) {
+        changeDirection(-1, 0); // Лево
+    } else if (knobPositionX > rect.width / 2) {
+        changeDirection(1, 0); // Право
+    }
+
+    if (knobPositionY < rect.height / 2) {
+        changeDirection(0, -1); // Верх
+    } else if (knobPositionY > rect.height / 2) {
+        changeDirection(0, 1); // Низ
+    }
+}
+
+// Начало перетаскивания джойстика
+joystickKnob.addEventListener('mousedown', (event) => {
+    isDraggingJoystick = true;
+    initialX = event.clientX;
+    initialY = event.clientY;
+});
+
+// Отмена перетаскивания
+window.addEventListener('mouseup', () => {
+    isDraggingJoystick = false;
+});
+
+// Обработка движения мыши
+window.addEventListener('mousemove', (event) => {
+    if (isDraggingJoystick) {
+        handleJoystickMove(event);
     }
 });
 
-function draw() {
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+// Основной игровой цикл
+function update() {
+    clearCanvas();
+    moveSnake();
+    drawSnake();
+}
 
+// Очищаем холст
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Движение змеи
+function moveSnake() {
+    const newHead = { x: snake[0].x + dx, y: snake[0].y + dy };
+    snake.unshift(newHead);
+    snake.pop();
+}
+
+// Рисуем змею
+function drawSnake() {
     snake.forEach(segment => {
-        ctx.fillStyle = 'lime';
-        ctx.fillRect(segment.x * 20, segment.y * 20, 20, 20);
+        ctx.fillStyle = 'green';
+        ctx.fillRect(segment.x * 10, segment.y * 10, 10, 10);
     });
-
-    ctx.fillStyle = 'orange';
-    ctx.fillRect(food.x * 20, food.y * 20, 20, 20);
 }
 
-function move() {
-    let head = {...snake[0]};
-    switch(direction) {
-        case 'up':
-            head.y--;
-            break;
-        case 'down':
-            head.y++;
-            break;
-        case 'left':
-            head.x--;
-            break;
-        case 'right':
-            head.x++;
-            break;
-    }
-
-    if (head.x === food.x && head.y === food.y) {
-        score++;
-        food = {x: Math.floor(Math.random() * 15), y: Math.floor(Math.random() * 15)};
-    } else {
-        snake.pop();
-    }
-
-    snake.unshift(head);
-
-    checkCollision();
-    draw();
+// Кнопка перезагрузки игры
+function restartGame() {
+    clearInterval(gameInterval);
+    snake = [{ x: 10, y: 10 }];
+    dx = 1;
+    dy = 0;
+    gameInterval = setInterval(update, speed);
 }
-
-function checkCollision() {
-    const head = snake[0];
-    if (head.x < 0 || head.x >= 15 || head.y < 0 || head.y >= 15 ||
-        snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y)) {
-        alert(`Game Over! Your score: ${score}`);
-        location.reload(); // перезагрузка страницы
-    }
-}
-
-setInterval(move, 100); // автоматическое обновление игры каждые 100мс
