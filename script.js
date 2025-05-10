@@ -8,11 +8,32 @@ let dx = 1, dy = 0;
 let speed = 100;
 let gameInterval;
 
+function drawBackground() {
+    ctx.fillStyle = '#EAEAEA'; // Цвет фона
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// Добавляем вызов метода рисования фона в основном цикле
+function update() {
+    drawBackground(); // Сначала рисуем фон
+    clearCanvas(); // Затем очищаем старый рисунок
+    moveSnake(); // Далее двигаемся
+    drawSnake(); // И наконец перерисовываем змею
+}
+
 // Джойстик
-const joystickContainer = document.getElementById('joystick-container');
-const joystickKnob = document.getElementById('joystick-knob');
-let isDraggingJoystick = false;
-let initialX, initialY;
+#joystick-container {
+    position: fixed; /* Позиционируем фиксировано */
+    bottom: calc(50% - 50px); /* Центрирование по вертикали */
+    left: calc(50% - 50px); /* Центрирование по горизонтали */
+    z-index: 1000; /* Поднимаем поверх остальных элементов */
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
 // Управление направлением
 function changeDirection(dxValue, dyValue) {
@@ -83,6 +104,46 @@ function drawSnake() {
         ctx.fillStyle = 'green';
         ctx.fillRect(segment.x * 10, segment.y * 10, 10, 10);
     });
+}
+
+let food = {};
+
+function placeFood() {
+    const randomX = Math.floor(Math.random() * (canvas.width / 10)) * 10;
+    const randomY = Math.floor(Math.random() * (canvas.height / 10)) * 10;
+    food = { x: randomX, y: randomY };
+}
+
+placeFood(); // Изначально размещаем еду
+
+// Метод для рисования еды
+function drawFood() {
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x, food.y, 10, 10);
+}
+
+// Логика съедения пищи
+function eatFood() {
+    if (snake[0].x === food.x && snake[0].y === food.y) {
+        placeFood(); // Размещаем новую пищу
+        growSnake(); // Удлиняем змею
+    }
+}
+
+// Увеличение длины змеи
+function growSnake() {
+    const tail = snake[snake.length - 1];
+    snake.push({ x: tail.x, y: tail.y }); // Просто копируем последнюю точку
+}
+
+// Основная игровая логика
+function update() {
+    drawBackground();
+    clearCanvas();
+    moveSnake();
+    eatFood(); // Проверяем съедено ли яблоко
+    drawSnake();
+    drawFood(); // Рисуем еду
 }
 
 // Кнопка перезагрузки игры
