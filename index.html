@@ -4,28 +4,43 @@
     <meta charset="UTF-8">
     <title>Змея с джойстиком</title>
     <style>
+        body {
+            overflow: hidden; /* Предотвращает прокрутку страницы */
+            user-select: none; /* Блокирует выделение текста */
+        }
+
+        #gameCanvas {
+            display: block; /* Устраняет отступы между элементами */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Небольшая тень вокруг холста */
+            margin: auto; /* Центрирует холст по горизонтали */
+            position: relative; /* Позволяет размещать элементы относительно канваса */
+        }
+
         #joystick-container {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
+            position: fixed; /* Фиксированное положение джойстика */
+            bottom: calc(50% - 50px); /* Центрирование по вертикали */
+            left: calc(50% - 50px); /* Центрирование по горизонтали */
+            z-index: 1000; /* Поверх остальных элементов */
             background-color: rgba(0, 0, 0, 0.7);
-            border-radius: 50%;
+            border-radius: 50%; /* Круглый дизайн контейнера */
             padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-        
+
         #joystick-knob {
             width: 50px;
             height: 50px;
             background-color: white;
-            border-radius: 50%;
+            border-radius: 50%; /* Круглый дизайн ручки */
             cursor: pointer;
         }
-        
+
         button {
-            margin-top: 20px;
+            position: absolute; /* Абсолютное позиционирование кнопки */
+            top: 10px; /* Расположить сверху */
+            right: 10px; /* Справа */
             font-size: 16px;
             padding: 10px 20px;
             color: white;
