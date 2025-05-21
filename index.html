@@ -1,46 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Змея с джойстиком</title>
     <style>
         body {
-            overflow: hidden; /* Предотвращает прокрутку страницы */
-            user-select: none; /* Блокирует выделение текста */
+            overflow: hidden;
+            user-select: none;
+            background-color: #fafafa;
         }
 
         #gameCanvas {
-            display: block; /* Устраняет отступы между элементами */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Небольшая тень вокруг холста */
-            margin: auto; /* Центрирует холст по горизонтали */
-            position: relative; /* Позволяет размещать элементы относительно канваса */
+            display: block;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            margin: auto;
+            position: relative;
         }
 
         #joystick-container {
-            position: fixed; /* Фиксированное положение джойстика */
-            bottom: calc(50% - 50px); /* Центрирование по вертикали */
-            left: calc(50% - 50px); /* Центрирование по горизонтали */
-            z-index: 1000; /* Поверх остальных элементов */
-            background-color: rgba(0, 0, 0, 0.7);
-            border-radius: 50%; /* Круглый дизайн контейнера */
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #joystick-knob {
-            width: 50px;
-            height: 50px;
-            background-color: white;
-            border-radius: 50%; /* Круглый дизайн ручки */
-            cursor: pointer;
+            display: none; /* Скрываем джойстик */
         }
 
         button {
-            position: absolute; /* Абсолютное позиционирование кнопки */
-            top: 10px; /* Расположить сверху */
-            right: 10px; /* Справа */
+            position: absolute;
+            top: 10px;
+            right: 10px;
             font-size: 16px;
             padding: 10px 20px;
             color: white;
@@ -49,15 +33,191 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-flow: column dense;
+        }
+
+        .controls button {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            background-color: lightgray;
+            border-radius: 50%;
+            border: none;
+            outline: none;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .controls button:hover,
+        .controls button:focus {
+            background-color: darkgray;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div id="joystick-container">
-        <div id="joystick-knob"></div>
+    <!-- Кнопки управления -->
+    <div class="controls">
+        <button id="btn-up">↑</button>
+        <button id="btn-left">←</button>
+        <button id="btn-right">→</button>
+        <button id="btn-down">↓</button>
     </div>
     <button onclick="restartGame()">Перезапустить игру</button>
 
-    <script src="script.js"></script>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Основные настройки игры
+        let snake = [{ x: 10, y: 10 }]; // Начальная позиция змеи
+        let dx = 1, dy = 0;              // Направление движения (начало справа)
+        let speed = 100;                  // Скорость игры (мс)
+        let gameInterval;                 // Таймер обновления игры
+
+        // Объект пищи
+        let food = {};
+
+        // Размеры игрового поля
+        const width = canvas.width / 10; // Ширина сетки
+        const height = canvas.height / 10; // Высота сетки
+
+        // Генерация новой точки для еды
+        function placeFood() {
+            const randomX = Math.floor(Math.random() * width) * 10;
+            const randomY = Math.floor(Math.random() * height) * 10;
+            food = { x: randomX, y: randomY };
+        }
+
+        // Рисует задний фон (игровое поле)
+        function drawBackground() {
+            ctx.fillStyle = '#EAEAEA';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Рисование сетки
+        function drawGrid() {
+            ctx.strokeStyle = '#ccc';
+            for (let i = 0; i <= width; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 10, 0);
+                ctx.lineTo(i * 10, canvas.height);
+                ctx.stroke();
+            }
+            for (let j = 0; j <= height; j++) {
+                ctx.beginPath();
+                ctx.moveTo(0, j * 10);
+                ctx.lineTo(canvas.width, j * 10);
+                ctx.stroke();
+            }
+        }
+
+        // Основное обновление игры
+        function update() {
+            drawBackground(); // Рисуем фон
+            drawGrid();       // Сетка
+moveSnake();      // Передвигаем змею
+            if (checkCollision()) { // Проверка столкновения
+                alert('Конец игры!');
+                restartGame();
+                return;
+            }
+            eatFood();        // Проверяем сбор еды
+            drawSnake();      // Рисуем змею
+            drawFood();       // Рисуем еду
+        }
+
+        // Чистка холста
+        function clearCanvas() {}
+
+        // Перемещает змею вперед
+        function moveSnake() {
+            const newHead = { x: snake[0].x + dx, y: snake[0].y + dy };
+            snake.unshift(newHead); // Добавляем голову змеи спереди
+            snake.pop();           // Убираем хвост
+        }
+
+        // Рисует змею
+        function drawSnake() {
+            snake.forEach(segment => {
+                ctx.fillStyle = 'green';
+                ctx.fillRect(segment.x * 10, segment.y * 10, 10, 10);
+            });
+        }
+
+        // Рисует еду
+        function drawFood() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, 10, 10);
+        }
+
+        // Ловит сбор еды
+        function eatFood() {
+            if (snake[0].x === food.x && snake[0].y === food.y) {
+                placeFood(); // Новая еда
+                growSnake(); // Растём
+            }
+        }
+
+        // Удлиняет змею
+        function growSnake() {
+            const lastSegment = snake[snake.length - 1];
+            snake.push({...lastSegment}); // Просто добавляем копию последнего сегмента
+        }
+
+        // Проверка столкновения со стенами
+        function checkCollision() {
+            const head = snake[0];
+            return (
+                head.x >= width ||
+                head.x < 0 ||
+                head.y >= height ||
+                head.y < 0
+            );
+        }
+
+        // Обработка кликов по кнопкам управления
+        document.querySelectorAll('.controls button').forEach(button => {
+            button.addEventListener('click', e => {
+                switch(e.target.id) {
+                    case 'btn-up':   changeDirection(0, -1); break;
+                    case 'btn-down': changeDirection(0, 1); break;
+                    case 'btn-left': changeDirection(-1, 0); break;
+                    case 'btn-right':changeDirection(1, 0); break;
+                }
+            });
+        });
+
+        // Меняем направление движения змеи
+        function changeDirection(dxValue, dyValue) {
+            if ((dx !== 0 && dxValue !== -dx) || (dy !== 0 && dyValue !== -dy)) {
+                dx = dxValue;
+                dy = dyValue;
+            }
+        }
+
+        // Функция перезапуска игры
+        function restartGame() {
+            clearInterval(gameInterval); // Очищаем интервал
+            snake = [{ x: 10, y: 10 }]; // Восстанавливаем исходную позицию змеи
+            dx = 1;                     // Возвращаемся направо
+            dy = 0;
+            placeFood();                // Ставим новую еду
+            gameInterval = setInterval(update, speed); // Повторно начинаем игру
+        }
+
+        // Первоначальные установки
+        placeFood(); // Генерируем первое яблоко
+        gameInterval = setInterval(update, speed);
+    </script>
 </body>
 </html>
