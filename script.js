@@ -1,3 +1,6 @@
+> Рома:
+Вот полный исправленный и доработанный код для файла script.js, включая все предложенные изменения:
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -8,39 +11,54 @@ let speed = 100;                 // Скорость игры (мс)
 let gameInterval;                // Таймер обновления игры
 
 // Объект пищи
-let food = {};                   // Точка расположения еды
+let food = {};
 
 // Размеры игрового поля
 const width = canvas.width / 10; // Ширина сетки
 const height = canvas.height / 10; // Высота сетки
 
-// Получаем DOM-элементы
-const joystickContainer = document.getElementById('joystick-container');
-const joystickKnob = document.getElementById('joystick-knob');
-
-// Переменная отслеживает перетаскивание джойстика
-let isDraggingJoystick = false;
-let initialX, initialY;
+// Дополнительные объекты (не нужны больше)
+// let joystickContainer = null;
+// let joystickKnob = null;
+// let isDraggingJoystick = false;
+// let initialX, initialY;
 
 // Рисует задний фон (игровое поле)
 function drawBackground() {
-    ctx.fillStyle = '#EAEAEA'; // Серый оттенок фона
+    ctx.fillStyle = '#EAEAEA';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// Рисование сетки
+function drawGrid() {
+    ctx.strokeStyle = '#ccc';
+    for (let i = 0; i <= width; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 10, 0);
+        ctx.lineTo(i * 10, canvas.height);
+        ctx.stroke();
+    }
+    for (let j = 0; j <= height; j++) {
+        ctx.beginPath();
+        ctx.moveTo(0, j * 10);
+        ctx.lineTo(canvas.width, j * 10);
+        ctx.stroke();
+    }
 }
 
 // Основное обновление игры
 function update() {
     drawBackground();     // Рисуем фон
-    clearCanvas();        // Чистим старый рисунок
+    drawGrid();           // Сетка
     moveSnake();          // Передвигаем змею
+    if (checkCollision()) {// Проверка столкновения
+        alert('Конец игры!');
+        restartGame();
+        return;
+    }
     eatFood();            // Проверяем сбор еды
     drawSnake();          // Рисуем змею
     drawFood();           // Рисуем еду
-}
-
-// Чистка холста
-function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 // Перемещает змею вперед
@@ -82,51 +100,38 @@ function eatFood() {
 // Удлиняет змею
 function growSnake() {
     const lastSegment = snake[snake.length - 1];
-    snake.push(lastSegment); // Копируем последний сегмент
+    snake.push({...lastSegment}); // Просто добавляем копию последнего сегмента
 }
 
-// Обработка движений джойстика
-function handleJoystickMove(event) {
-    const rect = joystickContainer.getBoundingClientRect();
-    const knobPositionX = event.clientX - rect.left;
-    const knobPositionY = event.clientY - rect.top;
-
-    if (knobPositionX < rect.width / 2) {
-        changeDirection(-1, 0); // Влево
-    } else if (knobPositionX > rect.width / 2) {
-        changeDirection(1, 0); // Вправо
-    }
-
-    if (knobPositionY < rect.height / 2) {
-        changeDirection(0, -1); // Вверх
-    } else if (knobPositionY > rect.height / 2) {
-        changeDirection(0, 1); // Вниз
-    }
+// Проверка столкновения со стеной
+function checkCollision() {
+    const head = snake[0];
+    return (
+        head.x >= width ||
+        head.x < 0 ||
+        head.y >= height ||
+        head.y < 0
+    );
 }
 
-// Мышью начали управлять джойстиком
-joystickKnob.addEventListener('mousedown', (event) => {
-    isDraggingJoystick = true;
-    initialX = event.clientX;
-    initialY = event.clientY;
-});
-
-// Отпустили мышь
-window.addEventListener('mouseup', () => {
-    isDraggingJoystick = false;
-});
-
-// Перемещаем мышь
-window.addEventListener('mousemove', (event) => {
-    if (isDraggingJoystick) {
-        handleJoystickMove(event);
-    }
+// Обработка кликов по кнопкам управления
+document.querySelectorAll('.controls button').forEach(button => {
+    button.addEventListener('click', e => {
+        switch(e.target.id) {
+            case 'btn-up':   changeDirection(0, -1); break;
+            case 'btn-down': changeDirection(0, 1); break;
+            case 'btn-left': changeDirection(-1, 0); break;
+            case 'btn-right':changeDirection(1, 0); break;
+        }
+    });
 });
 
 // Меняем направление движения змеи
 function changeDirection(dxValue, dyValue) {
-    dx = dxValue;
-    dy = dyValue;
+    if ((dx !== 0 && dxValue !== -dx) || (dy !== 0 && dyValue !== -dy)) {
+        dx = dxValue;
+        dy = dyValue;
+    }
 }
 
 // Функция перезапуска игры
@@ -139,6 +144,18 @@ function restartGame() {
     gameInterval = setInterval(update, speed); // Повторно начинаем игру
 }
 
+> Рома:
 // Первоначальные установки
 placeFood(); // Генерируем первое яблоко
-gameInterval = setInterval(update, speed); // Запускаем игровой цикл
+gameInterval = setInterval(update, speed);
+
+Ключевые улучшения:
+
+Удобство управления: вместо джойстика появились физические кнопки ("стрелочки"), упрощающие взаимодействие.
+Игровое поле: появилась сетка, делающая игровое пространство наглядным.
+Контроль границ: теперь, если змея касается края карты, игра останавливается.
+Рост змеи: при поглощении еды змея становится длиннее.
+Отображение элементов: теперь отображаются фон, сетка, еда и сама змея.
+
+
+Протестируйте этот код, запустив его в браузере, и убедитесь, что игра функционирует стабильно и удобно. Если потребуется дополнительное улучшение или появятся новые идеи, дайте мне знать.
